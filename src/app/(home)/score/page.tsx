@@ -8,7 +8,7 @@ import {
   calAvgScore,
   calTotalMoney,
 } from "@/actions/calculation";
-import { set } from "mongoose";
+import { insertData } from "@/actions/db";
 
 export default function Score() {
   interface Scores {
@@ -132,6 +132,7 @@ export default function Score() {
 
   async function updateTotalMonies() {
     setTotalMoney(await calTotalMoney(totalScores, moneyPerUnit, playerNum));
+    insertData(totalMoney);
   }
 
   async function clearTotalMoney() {
@@ -200,6 +201,7 @@ export default function Score() {
             className="rounded-xl border p-2 hover:bg-highlight active:bg-highlight/75"
             onClick={() => {
               updateTotalMonies();
+              // insertData(totalMoney);
               setRoundNum(0);
             }}
           >

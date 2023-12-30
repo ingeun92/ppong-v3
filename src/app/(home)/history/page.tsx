@@ -1,6 +1,9 @@
 import HistoryCell from "@/components/historyCell";
+import { insertData, findData } from "@/actions/db";
 
-export default function History() {
+export default async function History() {
+  // await insertData();
+  await findData();
   return (
     <div className="flex flex-col gap-2">
       <div className="flex justify-center text-5xl font-extrabold">History</div>
