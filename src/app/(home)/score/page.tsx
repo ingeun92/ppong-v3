@@ -8,7 +8,7 @@ import {
   calAvgScore,
   calTotalMoney,
 } from "@/actions/calculation";
-import { insertData } from "@/actions/db";
+import { findData, insertData } from "@/actions/db";
 
 export default function Score() {
   interface Scores {
@@ -27,6 +27,10 @@ export default function Score() {
     [key: string]: string;
   }
 
+  interface InGamePlayer {
+    [key: string]: boolean;
+  }
+
   const player: Player = {
     "1": "인근",
     "2": "재이",
@@ -41,6 +45,15 @@ export default function Score() {
   const [avgScore, setAvgScore] = useState<number>(0);
   const [firstPlayer, setFirstPlayer] = useState<string>("");
   const [lastPlayer, setLastPlayer] = useState<string>("");
+  const [inGamePlayerNum, setInGamePlayerNum] = useState<number>(0);
+
+  const [inGamePlayer, setInGamePlayer] = useState<InGamePlayer>({
+    "1": false,
+    "2": false,
+    "3": false,
+    "4": false,
+    "5": false,
+  });
 
   const [scores, setScores] = useState<Scores>({
     "1": new Array(10).fill("0"),
@@ -113,26 +126,43 @@ export default function Score() {
   }
 
   async function updateFirstPlayer() {
-    const firstPlayerValue = Math.min(...Object.values(currScores).map(Number));
+    let firstPlayerValue = 99999;
+    for (const key in currScores) {
+      if (inGamePlayer[key] && Number(currScores[key]) <= firstPlayerValue) {
+        firstPlayerValue = Number(currScores[key]);
+      }
+    }
+    console.log("firstPlayerValue: ", firstPlayerValue);
+    // const firstPlayerValue = Math.min(...Object.values(currScores).map(Number));
     const firstPlayerIdx: any = Object.keys(currScores).find(
-      (key) => currScores[key] == firstPlayerValue.toString(),
+      (key) =>
+        inGamePlayer[key] && currScores[key] == firstPlayerValue.toString(),
     );
+    console.log("firstPlayerIdx: ", firstPlayerIdx);
 
     setFirstPlayer(player[firstPlayerIdx]);
   }
 
   async function updateLastPlayer() {
-    const lastPlayerValue = Math.max(...Object.values(currScores).map(Number));
+    let lastPlayerValue = -99999;
+    for (const key in currScores) {
+      if (inGamePlayer[key] && Number(currScores[key]) >= lastPlayerValue) {
+        lastPlayerValue = Number(currScores[key]);
+      }
+    }
+    // const lastPlayerValue = Math.max(...Object.values(currScores).map(Number));
     const lastPlayerIdx: any = Object.keys(currScores).find(
-      (key) => currScores[key] == lastPlayerValue.toString(),
+      (key) =>
+        inGamePlayer[key] && currScores[key] == lastPlayerValue.toString(),
     );
 
     setLastPlayer(player[lastPlayerIdx]);
   }
 
   async function updateTotalMonies() {
-    setTotalMoney(await calTotalMoney(totalScores, moneyPerUnit, playerNum));
-    insertData(totalMoney);
+    setTotalMoney(
+      await calTotalMoney(totalScores, inGamePlayer, moneyPerUnit, playerNum),
+    );
   }
 
   async function clearTotalMoney() {
@@ -141,8 +171,38 @@ export default function Score() {
     }
   }
 
+  // async function checkInGamePlayer() {
+  //   Object.keys(totalScores).forEach((player) => {
+  //     if (
+  //       totalScores[player] == "0" &&
+  //       scores[player][0] == "0" &&
+  //       scores[player][9] == "0"
+  //     ) {
+  //       setInGamePlayer((prev) => ({ ...prev, [player]: false }));
+  //     }
+  //   });
+  // }
+
+  async function clearInGamePlayer() {
+    for (const key in inGamePlayer) {
+      setInGamePlayer((prev) => ({ ...prev, [key]: false }));
+    }
+    setInGamePlayerNum(0);
+  }
+
+  async function handlePlayerCheckboxes(e: any, idx: string) {
+    console.log(e.target.checked);
+    setInGamePlayer((prev) => ({ ...prev, [idx]: !prev[idx] }));
+    if (e.target.checked) {
+      setInGamePlayerNum((prev) => prev + 1);
+    } else {
+      setInGamePlayerNum((prev) => prev - 1);
+    }
+  }
+
   useEffect(() => {
     updateCurrScores();
+    console.log("inGamePlayerNum: ", inGamePlayerNum);
     console.log("scores: ", scores);
   }, [scores]);
 
@@ -156,21 +216,66 @@ export default function Score() {
   }, [currScores]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-center text-5xl font-extrabold">Score</div>
+    <div className="flex flex-col gap-1">
+      <div className="flex justify-center text-4xl font-extrabold">Score</div>
       <div className="flex items-center justify-around text-xl font-bold">
-        <div className="flex gap-4">
-          <div className="">플레이 유저 수:</div>
-          <input
-            className="bg-inputbg px-3 font-normal text-secondary outline-highlight"
-            name="nou"
-            value={playerNum == 1 ? "" : playerNum}
-            onChange={(e) => {
-              e.target.value == ""
-                ? setPlayerNum(0)
-                : setPlayerNum(parseInt(e.target.value));
-            }}
-          />
+        <div className="flex flex-col items-center gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex">플레이 유저 수:</div>
+            <input
+              className="flex bg-inputbg px-3 font-normal text-secondary outline-highlight"
+              name="nou"
+              value={playerNum == 1 ? "" : playerNum}
+              onChange={(e) => {
+                e.target.value == ""
+                  ? setPlayerNum(0)
+                  : setPlayerNum(parseInt(e.target.value));
+              }}
+            />
+          </div>
+          <div className="flex w-full items-center justify-evenly gap-1">
+            <label className="flex">|</label>
+            <input
+              type="checkbox"
+              checked={inGamePlayer["1"]}
+              onChange={(e) => handlePlayerCheckboxes(e, "1")}
+              className="flex h-4 w-4 rounded accent-highlight"
+            />
+            <label className="flex">인근</label>
+            <label className="flex">|</label>
+            <input
+              type="checkbox"
+              checked={inGamePlayer["2"]}
+              onChange={(e) => handlePlayerCheckboxes(e, "2")}
+              className="flex h-4 w-4 rounded accent-highlight"
+            />
+            <label className="flex">재이</label>
+            <label className="flex">|</label>
+            <input
+              type="checkbox"
+              checked={inGamePlayer["3"]}
+              onChange={(e) => handlePlayerCheckboxes(e, "3")}
+              className="flex h-4 w-4 rounded accent-highlight"
+            />
+            <label className="flex">찬웅</label>
+            <label className="flex">|</label>
+            <input
+              type="checkbox"
+              checked={inGamePlayer["4"]}
+              onChange={(e) => handlePlayerCheckboxes(e, "4")}
+              className="flex h-4 w-4 rounded accent-highlight"
+            />
+            <label className="flex">지훈</label>
+            <label className="flex">|</label>
+            <input
+              type="checkbox"
+              checked={inGamePlayer["5"]}
+              onChange={(e) => handlePlayerCheckboxes(e, "5")}
+              className="flex h-4 w-4 rounded accent-highlight"
+            />
+            <label className="flex">강원</label>
+            <label className="flex">|</label>
+          </div>
         </div>
         <div className="flex gap-4">
           <div className="">점 당 금액:</div>
@@ -201,7 +306,6 @@ export default function Score() {
             className="rounded-xl border p-2 hover:bg-highlight active:bg-highlight/75"
             onClick={() => {
               updateTotalMonies();
-              // insertData(totalMoney);
               setRoundNum(0);
             }}
           >
@@ -220,9 +324,18 @@ export default function Score() {
               clearCurrScores();
               clearTotalScores();
               clearTotalMoney();
+              clearInGamePlayer();
             }}
           >
             All Clear
+          </button>
+          <button
+            className="rounded-xl border p-2 hover:bg-highlight active:bg-highlight/75"
+            onClick={() => {
+              insertData(totalMoney);
+            }}
+          >
+            Save
           </button>
         </div>
       </div>

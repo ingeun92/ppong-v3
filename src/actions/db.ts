@@ -3,15 +3,21 @@
 import { connect } from "@/db/connection";
 import { History } from "@/db/schema";
 
-interface TotalScores {
+interface ITotalMoney {
   [key: string]: string;
 }
 
-export const insertData = async (data: TotalScores) => {
+export const insertData = async (totalMoney: ITotalMoney) => {
   await connect();
-  console.log(data);
+  console.log("totalMoney: ", totalMoney);
+  Object.keys(totalMoney).forEach((key) => {
+    totalMoney[key] = (
+      Math.round(parseFloat(totalMoney[key]) / 100) * 100
+    ).toString();
+  });
+
   const history = new History({
-    money: data,
+    money: totalMoney,
     date: new Date(),
   });
   await history.save();
